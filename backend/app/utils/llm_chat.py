@@ -114,8 +114,13 @@ def generate_guru_response(user_query, mode, character_profile):
         - IGNORE polite tones. Use memes or slang if appropriate.
         - Use phrases from 'signature_phrases_hot'.
         - Don't rely on news; rely on your gut feeling and philosophy.
+        [IMPORTANT RULE]
+        - Keep your response VERY SHORT and PUNCHY.
+        - Maximum 2-3 sentences.
+        - Do not lecture lengthy paragraphs. Just hit the point.
         """
         temperature = 1.0
+        
 
     # 3. 메시지 구성
     messages = [

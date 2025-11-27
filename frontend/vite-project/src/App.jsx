@@ -342,9 +342,6 @@ const HistoryOverlay = ({ open, onClose, itemsByDay, onDelete, onRename, onSelec
 const CarouselPage = ({ gurus, onGetStarted, selectedNames, onToggle, onOpenHistory }) => (
   <main className="phone welcome-page">
     <div className="top-row">
-      <button className="back-btn" aria-label="Go back" type="button">
-        <BackIcon />
-      </button>
       <div className="top-row-spacer" aria-hidden="true" />
       <HistoryButton onClick={onOpenHistory} />
     </div>

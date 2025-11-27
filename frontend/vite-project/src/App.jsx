@@ -320,25 +320,105 @@ const ChatPage = ({ onBack, sessionId, userId, selectedCharacters }) => {
 
   useEffect(scrollToBottom, [messages]);
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback(async () => {
     if (isComposing) return;
     const text = input.trim();
     if (!text) return;
+    
     const userMsg = { id: `u-${Date.now()}`, role: 'user', text };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
-    setTimeout(() => {
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/sessions/chat/${sessionId}/chat`, {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-User-ID': userId
+        },
+        body: JSON.stringify({
+          content: text,
+          style: mode, // 'spicy' or 'normal'
+          model: 'qwen-plus'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      
+      // 각 캐릭터별 메시지 버퍼
+      const characterBuffers = {};
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonStr = line.slice(6); // 'data: ' 제거
+              const data = JSON.parse(jsonStr);
+              
+              if (data.character_id && data.name && data.content) {
+                const charId = data.character_id;
+                
+                // 스페이스만 있는 경우 메시지 종료 신호
+                if (data.content === ' ') {
+                  continue;
+                }
+
+                // 버퍼 초기화 또는 업데이트
+                if (!characterBuffers[charId]) {
+                  const msgId = `${charId}-${Date.now()}`;
+                  characterBuffers[charId] = {
+                    id: msgId,
+                    author: data.name,
+                    role: 'opponent',
+                    text: data.content
+                  };
+                  
+                  // 새 메시지 추가
+                  setMessages((prev) => [...prev, characterBuffers[charId]]);
+                } else {
+                  // 기존 메시지 업데이트
+                  characterBuffers[charId].text += data.content;
+                  
+                  setMessages((prev) => 
+                    prev.map(msg => 
+                      msg.id === characterBuffers[charId].id 
+                        ? { ...msg, text: characterBuffers[charId].text }
+                        : msg
+                    )
+                  );
+                }
+              }
+            } catch (e) {
+              console.error('Failed to parse SSE data:', e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error sending message:', error);
       setMessages((prev) => [
         ...prev,
         {
-          id: `o-${Date.now()}`,
+          id: `error-${Date.now()}`,
           role: 'opponent',
-          author: 'Nakamoto',
-          text: mode === 'spicy' ? 'Bold take incoming. Ready?' : 'Let me think that through with you.',
+          author: 'System',
+          text: '메시지 전송에 실패했습니다. 다시 시도해주세요.',
         },
       ]);
-    }, 600);
-  }, [input, mode, isComposing]);
+    }
+  }, [input, mode, isComposing, sessionId, userId]);
 
   return (
     <div className="chat-page">

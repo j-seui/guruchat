@@ -398,6 +398,11 @@ const ChatPage = ({ onBack, sessionId, userId, selectedCharacters }) => {
       const sessions = await response.json();
       console.log('📚 Sessions loaded:', sessions);
 
+      // 세션들을 created_at 기준으로 최신순 정렬
+      const sortedSessions = sessions.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
       // 세션들을 날짜별로 분류
       const now = new Date();
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -407,7 +412,7 @@ const ChatPage = ({ onBack, sessionId, userId, selectedCharacters }) => {
       const todaySessions = [];
       const yesterdaySessions = [];
 
-      sessions.forEach((session) => {
+      sortedSessions.forEach((session) => {
         const sessionDate = new Date(session.created_at);
         const sessionItem = {
           id: session.id,
@@ -416,13 +421,32 @@ const ChatPage = ({ onBack, sessionId, userId, selectedCharacters }) => {
           characters: session.characters
         };
 
-        if (sessionDate >= todayStart) {
+        // 로컬 타임존으로 변환하여 비교
+        const sessionLocalDate = new Date(
+          sessionDate.getFullYear(),
+          sessionDate.getMonth(),
+          sessionDate.getDate()
+        );
+        
+        const todayLocalDate = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+        
+        const yesterdayLocalDate = new Date(todayLocalDate);
+        yesterdayLocalDate.setDate(yesterdayLocalDate.getDate() - 1);
+
+        if (sessionLocalDate.getTime() === todayLocalDate.getTime()) {
           todaySessions.push(sessionItem);
-        } else if (sessionDate >= yesterdayStart) {
+        } else if (sessionLocalDate.getTime() === yesterdayLocalDate.getTime()) {
           yesterdaySessions.push(sessionItem);
         }
         // 더 오래된 세션은 일단 무시 (필요시 "Earlier" 그룹 추가 가능)
       });
+
+      console.log('📅 Today sessions:', todaySessions);
+      console.log('📅 Yesterday sessions:', yesterdaySessions);
 
       setHistoryItems({
         today: todaySessions,

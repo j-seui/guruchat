@@ -10,8 +10,8 @@ const API_BASE_URL = 'https://guruchat-backend.onrender.com';
 const getUserId = () => {
   let userId = localStorage.getItem('guruchat_user_id');
   if (!userId) {
-    // UUID v4 생성 (간단한 랜덤 ID)
-    userId = 'user_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+    // UUID v4 생성 (표준 형식)
+    userId = crypto.randomUUID();
     localStorage.setItem('guruchat_user_id', userId);
   }
   return userId;

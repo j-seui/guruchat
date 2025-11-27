@@ -142,7 +142,7 @@ const PencilIcon = () => (
   </svg>
 );
 
-const HistoryItem = ({ title, onDelete, onSelect, onRename }) => {
+const HistoryItem = ({ title, onDelete, onSelect, onRename, item }) => {
   const [offset, setOffset] = useState(0);
   const [ready, setReady] = useState(false);
   const [pressed, setPressed] = useState(false);
@@ -180,7 +180,7 @@ const HistoryItem = ({ title, onDelete, onSelect, onRename }) => {
   const handleClick = () => {
     if (editing) return;
     if (offset > 6 || ready) return;
-    if (onSelect) onSelect();
+    if (onSelect) onSelect(item);
     setPressed(false);
   };
 
@@ -268,8 +268,9 @@ const HistoryGroup = ({ label, items, onDelete, onSelect, onRename }) => (
       <HistoryItem
         key={item.id}
         title={item.title}
+        item={item}
         onDelete={() => onDelete(item.id)}
-        onSelect={() => onSelect?.(item)}
+        onSelect={onSelect}
         onRename={(next) => onRename(item.id, next)}
       />
     ))}

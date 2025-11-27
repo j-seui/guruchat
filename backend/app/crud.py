@@ -74,7 +74,7 @@ def create_session(db: Session, session: schemas.PostSessionRequest):
     # 3. Create session (SQLAlchemy automatically handles the intermediate table session_characters)
     db_session = models.Session(
         user_id=user_id_str,
-        title="New Chat", # Initial title
+        title=f"New Chat with {', '.join([char.name for char in characters])}", # Initial title
         characters=characters 
     )
     

@@ -279,11 +279,17 @@ const ChatPage = ({ onBack, sessionId, userId, selectedCharacters }) => {
   // 초기 메시지: 선택된 캐릭터들의 설명을 표시
   const [messages, setMessages] = useState(() => {
     if (!selectedCharacters || selectedCharacters.length === 0) {
-      return initialMessages;
+      return [{
+        id: 'm1',
+        author: 'System',
+        role: 'opponent',
+        text: 'Please select a Guru to start chatting.'
+      }];
     }
     
+    // 각 캐릭터의 설명을 메시지로 추가
     return selectedCharacters.map((char, idx) => ({
-      id: `intro-${idx}`,
+      id: `intro-${char.id || idx}`,
       author: char.name,
       role: 'opponent',
       text: char.description || `Hello, I'm ${char.name}. Ask me anything!`

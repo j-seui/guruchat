@@ -429,8 +429,14 @@ const App = () => {
     setSelectedNames((prev) => {
       const next = new Set(prev);
       if (next.has(name)) {
+        // 이미 선택된 경우 선택 해제
         next.delete(name);
       } else {
+        // 최대 3명까지만 선택 가능
+        if (next.size >= 3) {
+          alert('최대 3명의 Guru만 선택할 수 있습니다!');
+          return prev;
+        }
         next.add(name);
       }
       return next;

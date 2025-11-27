@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import './App.css';
 
 import { sdk } from '@farcaster/miniapp-sdk';
@@ -269,14 +269,14 @@ const HistoryGroup = ({ label, items, onDelete, onSelect, onRename }) => (
         key={item.id}
         title={item.title}
         onDelete={() => onDelete(item.id)}
-        onSelect={onSelect}
+        onSelect={() => onSelect?.(item)}
         onRename={(next) => onRename(item.id, next)}
       />
     ))}
   </div>
 );
 
-const HistoryOverlay = ({ open, onClose, itemsByDay, onDelete, onRename }) => (
+const HistoryOverlay = ({ open, onClose, itemsByDay, onDelete, onRename, onSelectSession }) => (
   <div className={`history-overlay${open ? ' open' : ''}`}>
     <div className="history-header">
       <h3 className="history-title">History</h3>
@@ -305,14 +305,18 @@ const HistoryOverlay = ({ open, onClose, itemsByDay, onDelete, onRename }) => (
         label="Today"
         items={itemsByDay.today}
         onDelete={onDelete}
-        onSelect={onClose}
+        onSelect={(session) => {
+          onSelectSession?.(session);
+        }}
         onRename={onRename}
       />
       <HistoryGroup
         label="Yesterday"
         items={itemsByDay.yesterday}
         onDelete={onDelete}
-        onSelect={onClose}
+        onSelect={(session) => {
+          onSelectSession?.(session);
+        }}
         onRename={onRename}
       />
     </div>
@@ -341,7 +345,14 @@ const CarouselPage = ({ gurus, onGetStarted, selectedNames, onToggle }) => (
   </main>
 );
 
-const ChatPage = ({ onBack, sessionId, userId, selectedCharacters }) => {
+const ChatPage = ({
+  onBack,
+  sessionId,
+  userId,
+  selectedCharacters,
+  initialMessages,
+  onSelectHistorySession
+}) => {
   const [mode, setMode] = useState('normal');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [isComposing, setIsComposing] = useState(false);
@@ -352,24 +363,40 @@ const ChatPage = ({ onBack, sessionId, userId, selectedCharacters }) => {
   const [loadingSessions, setLoadingSessions] = useState(false);
   
   // 초기 메시지: 선택된 캐릭터들의 설명을 표시
-  const [messages, setMessages] = useState(() => {
+  const buildIntroMessages = useCallback(() => {
     if (!selectedCharacters || selectedCharacters.length === 0) {
-      return [{
-        id: 'm1',
-        author: 'System',
-        role: 'opponent',
-        text: 'Please select a Guru to start chatting.'
-      }];
+      return [
+        {
+          id: 'm1',
+          author: 'System',
+          role: 'opponent',
+          text: 'Please select a Guru to start chatting.'
+        }
+      ];
     }
-    
-    // 각 캐릭터의 설명을 메시지로 추가
+
     return selectedCharacters.map((char, idx) => ({
       id: `intro-${char.id || idx}`,
       author: char.name,
       role: 'opponent',
       text: char.description || `Hello, I'm ${char.name}. Ask me anything!`
     }));
+  }, [selectedCharacters]);
+
+  const [messages, setMessages] = useState(() => {
+    if (initialMessages && initialMessages.length > 0) {
+      return initialMessages;
+    }
+    return buildIntroMessages();
   });
+
+  useEffect(() => {
+    if (initialMessages && initialMessages.length > 0) {
+      setMessages(initialMessages);
+    } else {
+      setMessages(buildIntroMessages());
+    }
+  }, [initialMessages, buildIntroMessages]);
   
   const [input, setInput] = useState('');
   const feedRef = useRef(null);
@@ -465,6 +492,16 @@ const ChatPage = ({ onBack, sessionId, userId, selectedCharacters }) => {
       fetchSessions();
     }
   }, [historyOpen, fetchSessions]);
+
+  const handleHistorySelect = useCallback(async (session) => {
+    if (!session || !onSelectHistorySession) return;
+    try {
+      await onSelectHistorySession(session);
+      setHistoryOpen(false);
+    } catch (error) {
+      console.error('❌ Error selecting history session:', error);
+    }
+  }, [onSelectHistorySession]);
 
   const handleDeleteHistory = useCallback(async (id) => {
     try {
@@ -696,6 +733,7 @@ const ChatPage = ({ onBack, sessionId, userId, selectedCharacters }) => {
         itemsByDay={historyItems}
         onDelete={handleDeleteHistory}
         onRename={handleRenameHistory}
+        onSelectSession={handleHistorySelect}
       />
     </div>
   );
@@ -707,6 +745,7 @@ const App = () => {
   const [selectedNames, setSelectedNames] = useState(() => new Set());
   const [view, setView] = useState('welcome');
   const [sessionId, setSessionId] = useState(null);
+  const [initialMessages, setInitialMessages] = useState([]);
 
   useEffect(() => {
     sdk.actions.ready();
@@ -799,12 +838,52 @@ const App = () => {
       console.log('✅ Session created:', data);
       
       setSessionId(data.id);
+      setInitialMessages([]);
       setView('chat');
     } catch (error) {
       console.error('❌ Error creating session:', error);
       alert('세션 생성에 실패했습니다. 콘솔을 확인해주세요.');
     }
   }, [selectedNames, userId]);
+
+  const handleLoadSavedSession = useCallback(async (session) => {
+    if (!session?.id) return;
+    if (!userId) {
+      alert('User ID 정보를 찾을 수 없습니다.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/sessions/chat/${session.id}/messages`, {
+        method: 'GET',
+        headers: {
+          'accept': 'application/json',
+          'X-User-ID': userId
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch session messages');
+      }
+
+      const data = await response.json();
+      const formattedMessages = data.map((message) => ({
+        id: `history-${message.id}`,
+        role: message.role === 'user' ? 'user' : 'opponent',
+        author: message.role === 'user' ? 'You' : (message.character?.name || 'Guru'),
+        text: message.content
+      }));
+
+      setSelectedNames(new Set((session.characters || []).map((character) => character.id)));
+      setSessionId(session.id);
+      setInitialMessages(formattedMessages);
+      setView('chat');
+    } catch (error) {
+      console.error('❌ Error loading session messages:', error);
+      alert('세션 메시지를 불러오지 못했습니다. 다시 시도해주세요.');
+      throw error;
+    }
+  }, [userId]);
 
   if (view === 'chat') {
     const selectedCharacters = gurus.filter(guru => selectedNames.has(guru.id));
@@ -816,6 +895,8 @@ const App = () => {
           sessionId={sessionId}
           userId={userId}
           selectedCharacters={selectedCharacters}
+          initialMessages={initialMessages}
+          onSelectHistorySession={handleLoadSavedSession}
         />
       </main>
     );

@@ -267,9 +267,22 @@ const HistoryItem = ({ title, onDelete, onSelect, onRename, item }) => {
           ) : (
             <span className="history-title-text">{title}</span>
           )}
-          <button type="button" className="edit-btn" onClick={handleEditClick} aria-label={`Edit ${title}`}>
-            <PencilIcon />
-          </button>
+          <div className="history-actions">
+            <button type="button" className="icon-btn" onClick={handleEditClick} aria-label={`Edit ${title}`}>
+              <PencilIcon />
+            </button>
+            <button
+              type="button"
+              className="icon-btn danger"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete?.();
+              }}
+              aria-label={`Delete ${title}`}
+            >
+              <DeleteIcon />
+            </button>
+          </div>
         </div>
       </div>
     </div>

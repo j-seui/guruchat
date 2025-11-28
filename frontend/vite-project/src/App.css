@@ -770,6 +770,12 @@ body::before {
   white-space: nowrap;
 }
 
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .history-edit-input {
   width: 100%;
   background: transparent;
@@ -780,7 +786,7 @@ body::before {
   padding: 8px 0;
 }
 
-.edit-btn {
+.icon-btn {
   width: 30px;
   height: 30px;
   border: none;
@@ -789,6 +795,16 @@ body::before {
   place-items: center;
   cursor: pointer;
   padding: 0;
+  color: #d9e3f7;
+  transition: transform 120ms ease, color 120ms ease;
+}
+
+.icon-btn:active {
+  transform: scale(0.94);
+}
+
+.icon-btn.danger {
+  color: #ffb36a;
 }
 
 .history-item.ready {

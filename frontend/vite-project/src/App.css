@@ -675,6 +675,9 @@ body::before {
   padding-right: 6px;
   display: grid;
   gap: 20px;
+  align-content: start;
+  align-items: start;
+  grid-auto-rows: min-content;
 }
 
 .search-box {
@@ -705,6 +708,9 @@ body::before {
 .history-group {
   display: grid;
   gap: 12px;
+  align-content: start;
+  align-items: start;
+  grid-auto-rows: min-content;
 }
 
 .history-group h4 {

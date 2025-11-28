@@ -1,0 +1,34 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjE1NDAyMjcsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHg3Mjk2ZjkxNjViNUM0ODEzZmYyNzkwMENiQzBjMjZDNUVlNjY2MENkIn0",
+    "payload": "eyJkb21haW4iOiJndXJ1Y2hhdC52ZXJjZWwuYXBwIn0",
+    "signature": "CEAsD7WtFZQ6KkkwikI1ZQ3acyifIWqZ6+mSD4fpV+gepwLf/piWAchLUw6hi8DmM54wyahwqOpxEl5xMA500Rs="
+  },
+  "baseBuilder": {
+    "ownerAddress": "0x9BAC57cf41F062Ad67409645a429c2F899Cc39C9"
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "GuruChat",
+    "homeUrl": "https://ex.co",
+    "iconUrl": "https://ex.co/i.png",
+    "splashImageUrl": "https://ex.co/l.png",
+    "splashBackgroundColor": "#000000",
+    "webhookUrl": "https://ex.co/api/webhook",
+    "subtitle": "Fast, fun, social",
+    "description": "A fast, fun way to get advice from investment gurus.",
+    "screenshotUrls": [
+      "https://ex.co/s1.png",
+      "https://ex.co/s2.png",
+      "https://ex.co/s3.png"
+    ],
+    "primaryCategory": "social",
+    "tags": ["example", "miniapp", "baseapp"],
+    "heroImageUrl": "https://ex.co/og.png",
+    "tagline": "Play instantly",
+    "ogTitle": "GuruChat",
+    "ogDescription": "A fast, fun way to get advice from investment gurus.",
+    "ogImageUrl": "https://ex.co/og.png",
+    "noindex": true
+  }
+}

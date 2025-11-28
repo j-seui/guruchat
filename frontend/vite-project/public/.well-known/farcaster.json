@@ -10,17 +10,15 @@
   "miniapp": {
     "version": "1",
     "name": "GuruChat",
-    "homeUrl": "https://ex.co",
-    "iconUrl": "https://ex.co/i.png",
+    "homeUrl": "https://guruchat.vercel.app",
+    "iconUrl": "https://guruchat.vercel.app/icon.png",
     "splashImageUrl": "https://ex.co/l.png",
     "splashBackgroundColor": "#000000",
     "webhookUrl": "https://ex.co/api/webhook",
     "subtitle": "Fast, fun, social",
     "description": "A fast, fun way to get advice from investment gurus.",
     "screenshotUrls": [
-      "https://ex.co/s1.png",
-      "https://ex.co/s2.png",
-      "https://ex.co/s3.png"
+      "https://guruchat.vercel.app/icon.png"
     ],
     "primaryCategory": "social",
     "tags": ["example", "miniapp", "baseapp"],

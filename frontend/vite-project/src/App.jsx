@@ -307,56 +307,70 @@ const HistoryGroup = ({ label, items, onDelete, onSelect, onRename }) => (
 
 const HistoryOverlay = ({ open, onClose, itemsByDay, onDelete, onRename, onSelectSession }) => (
   <div className={`history-overlay${open ? ' open' : ''}`}>
-    <div className="history-header">
-      <h3 className="history-title">History</h3>
-      <button className="post-btn" type="button" onClick={onClose} aria-label="Back to chat">
-        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M7 17l10-10" stroke="#f4f7ff" strokeWidth="2.4" strokeLinecap="round" />
-          <path
-            d="M9.5 7H17v7.5"
-            stroke="#f4f7ff"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
-    </div>
-    <div className="history-body">
-      <label className="search-box">
-        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="11" cy="11" r="6.5" stroke="#9a9a9a" strokeWidth="2" />
-          <path d="M16 16l4 4" stroke="#9a9a9a" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-        <input type="search" placeholder="Search..." aria-label="Search history" />
-      </label>
-      <HistoryGroup
-        label="Today"
-        items={itemsByDay.today}
-        onDelete={onDelete}
-        onSelect={(session) => {
-          onSelectSession?.(session);
-        }}
-        onRename={onRename}
-      />
-      <HistoryGroup
-        label="Yesterday"
-        items={itemsByDay.yesterday}
-        onDelete={onDelete}
-        onSelect={(session) => {
-          onSelectSession?.(session);
-        }}
-        onRename={onRename}
-      />
+    <div className="history-surface">
+      <div className="history-header">
+        <h3 className="history-title">History</h3>
+        <button className="post-btn" type="button" onClick={onClose} aria-label="Back to chat">
+          <svg width={24} height={24} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 17l10-10" stroke="#f4f7ff" strokeWidth="2.4" strokeLinecap="round" />
+            <path
+              d="M9.5 7H17v7.5"
+              stroke="#f4f7ff"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      </div>
+      <div className="history-body">
+        <label className="search-box">
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5" stroke="#9a9a9a" strokeWidth="2" />
+            <path d="M16 16l4 4" stroke="#9a9a9a" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          <input type="search" placeholder="Search..." aria-label="Search history" />
+        </label>
+        <HistoryGroup
+          label="Today"
+          items={itemsByDay.today}
+          onDelete={onDelete}
+          onSelect={(session) => {
+            onSelectSession?.(session);
+          }}
+          onRename={onRename}
+        />
+        <HistoryGroup
+          label="Yesterday"
+          items={itemsByDay.yesterday}
+          onDelete={onDelete}
+          onSelect={(session) => {
+            onSelectSession?.(session);
+          }}
+          onRename={onRename}
+        />
+      </div>
     </div>
   </div>
 );
 
-const CarouselPage = ({ gurus, onGetStarted, selectedNames, onToggle }) => (
+const CarouselPage = ({ gurus, onGetStarted, selectedNames, onToggle, onOpenHistory }) => (
   <main className="phone welcome-page">
-    <button className="back-btn" aria-label="Go back" type="button">
-      <BackIcon />
-    </button>
+    <div className="top-row welcome-top-row">
+      <div className="top-row-spacer" aria-hidden="true" />
+      <button
+        className="hamburger-btn"
+        type="button"
+        aria-label="Open history"
+        onClick={onOpenHistory}
+      >
+        <div className="hamburger-lines" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+      </button>
+    </div>
     <div className="welcome-stack">
       <section className="headline">
         <h1>
@@ -380,16 +394,10 @@ const ChatPage = ({
   userId,
   selectedCharacters,
   initialMessages,
-  onSelectHistorySession
+  onOpenHistory
 }) => {
   const [mode, setMode] = useState('normal');
-  const [historyOpen, setHistoryOpen] = useState(false);
   const [isComposing, setIsComposing] = useState(false);
-  const [historyItems, setHistoryItems] = useState({
-    today: [],
-    yesterday: [],
-  });
-  const [loadingSessions, setLoadingSessions] = useState(false);
   
   // 초기 메시지: 선택된 캐릭터들의 설명을 표시
   const buildIntroMessages = useCallback(() => {
@@ -435,166 +443,6 @@ const ChatPage = ({
   const toggleMode = useCallback(() => {
     setMode((prev) => (prev === 'normal' ? 'spicy' : 'normal'));
   }, []);
-
-  const fetchSessions = useCallback(async () => {
-    if (!userId) return;
-    
-    setLoadingSessions(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/sessions/`, {
-        method: 'GET',
-        headers: {
-          'accept': 'application/json',
-          'X-User-ID': userId
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch sessions');
-      }
-
-      const sessions = await response.json();
-      console.log('📚 Sessions loaded:', sessions);
-
-      // 세션들을 created_at 기준으로 최신순 정렬
-      const sortedSessions = sessions.sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-
-      // 세션들을 날짜별로 분류
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const yesterdayStart = new Date(todayStart);
-      yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-
-      const todaySessions = [];
-      const yesterdaySessions = [];
-
-      sortedSessions.forEach((session) => {
-        const sessionDate = new Date(session.created_at);
-        const sessionItem = {
-          id: session.id,
-          title: session.title,
-          created_at: session.created_at,
-          characters: session.characters
-        };
-
-        // 로컬 타임존으로 변환하여 비교
-        const sessionLocalDate = new Date(
-          sessionDate.getFullYear(),
-          sessionDate.getMonth(),
-          sessionDate.getDate()
-        );
-        
-        const todayLocalDate = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate()
-        );
-        
-        const yesterdayLocalDate = new Date(todayLocalDate);
-        yesterdayLocalDate.setDate(yesterdayLocalDate.getDate() - 1);
-
-        if (sessionLocalDate.getTime() === todayLocalDate.getTime()) {
-          todaySessions.push(sessionItem);
-        } else if (sessionLocalDate.getTime() === yesterdayLocalDate.getTime()) {
-          yesterdaySessions.push(sessionItem);
-        }
-        // 더 오래된 세션은 일단 무시 (필요시 "Earlier" 그룹 추가 가능)
-      });
-
-      console.log('📅 Today sessions:', todaySessions);
-      console.log('📅 Yesterday sessions:', yesterdaySessions);
-
-      setHistoryItems({
-        today: todaySessions,
-        yesterday: yesterdaySessions,
-      });
-    } catch (error) {
-      console.error('❌ Error fetching sessions:', error);
-    } finally {
-      setLoadingSessions(false);
-    }
-  }, [userId]);
-
-  // 히스토리 오버레이가 열릴 때 세션 데이터 가져오기
-  useEffect(() => {
-    if (historyOpen) {
-      fetchSessions();
-    }
-  }, [historyOpen, fetchSessions]);
-
-  const handleHistorySelect = useCallback(async (session) => {
-    if (!session || !onSelectHistorySession) return;
-    try {
-      await onSelectHistorySession(session);
-      setHistoryOpen(false);
-    } catch (error) {
-      console.error('❌ Error selecting history session:', error);
-    }
-  }, [onSelectHistorySession]);
-
-  const handleDeleteHistory = useCallback(async (id) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/sessions/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'accept': 'application/json',
-          'X-User-ID': userId
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete session');
-      }
-
-      console.log('✅ Session deleted:', id);
-
-      // UI에서 삭제
-      setHistoryItems((prev) => {
-        const filterDay = (arr) => arr.filter((item) => item.id !== id);
-        return {
-          today: filterDay(prev.today),
-          yesterday: filterDay(prev.yesterday),
-        };
-      });
-    } catch (error) {
-      console.error('❌ Error deleting session:', error);
-      alert('세션 삭제에 실패했습니다.');
-    }
-  }, [userId]);
-
-  const handleRenameHistory = useCallback(async (id, title) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/sessions/${id}/title`, {
-        method: 'PATCH',
-        headers: {
-          'accept': 'application/json',
-          'Content-Type': 'application/json',
-          'X-User-ID': userId
-        },
-        body: JSON.stringify({ title })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update session title');
-      }
-
-      console.log('✅ Session title updated:', id, title);
-
-      // UI에서 업데이트
-      setHistoryItems((prev) => {
-        const rename = (arr) => arr.map((item) => (item.id === id ? { ...item, title } : item));
-        return {
-          today: rename(prev.today),
-          yesterday: rename(prev.yesterday),
-        };
-      });
-    } catch (error) {
-      console.error('❌ Error updating session title:', error);
-      alert('세션 제목 변경에 실패했습니다.');
-    }
-  }, [userId]);
 
   const scrollToBottom = () => {
     const el = feedRef.current;
@@ -725,7 +573,7 @@ const ChatPage = ({
           className="hamburger-btn"
           type="button"
           aria-label="Open history"
-          onClick={() => setHistoryOpen(true)}
+          onClick={onOpenHistory}
         >
           <div className="hamburger-lines" aria-hidden="true">
             <span />
@@ -769,14 +617,6 @@ const ChatPage = ({
           </button>
         </div>
       </div>
-      <HistoryOverlay
-        open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
-        itemsByDay={historyItems}
-        onDelete={handleDeleteHistory}
-        onRename={handleRenameHistory}
-        onSelectSession={handleHistorySelect}
-      />
     </div>
   );
 };
@@ -788,6 +628,11 @@ const App = () => {
   const [view, setView] = useState('welcome');
   const [sessionId, setSessionId] = useState(null);
   const [initialMessages, setInitialMessages] = useState([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyItems, setHistoryItems] = useState({
+    today: [],
+    yesterday: [],
+  });
 
   useEffect(() => {
     sdk.actions.ready();
@@ -826,6 +671,79 @@ const App = () => {
     fetchCharacters();
   }, []);
 
+  const fetchSessions = useCallback(async () => {
+    if (!userId) return;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/sessions/`, {
+        method: 'GET',
+        headers: {
+          'accept': 'application/json',
+          'X-User-ID': userId
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch sessions');
+      }
+
+      const sessions = await response.json();
+      console.log('📚 Sessions loaded:', sessions);
+
+      const sortedSessions = sessions.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      const now = new Date();
+      const todaySessions = [];
+      const yesterdaySessions = [];
+
+      sortedSessions.forEach((session) => {
+        const sessionDate = new Date(session.created_at);
+        const sessionItem = {
+          id: session.id,
+          title: session.title,
+          created_at: session.created_at,
+          characters: session.characters
+        };
+
+        const sessionLocalDate = new Date(
+          sessionDate.getFullYear(),
+          sessionDate.getMonth(),
+          sessionDate.getDate()
+        );
+        
+        const todayLocalDate = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+        
+        const yesterdayLocalDate = new Date(todayLocalDate);
+        yesterdayLocalDate.setDate(yesterdayLocalDate.getDate() - 1);
+
+        if (sessionLocalDate.getTime() === todayLocalDate.getTime()) {
+          todaySessions.push(sessionItem);
+        } else if (sessionLocalDate.getTime() === yesterdayLocalDate.getTime()) {
+          yesterdaySessions.push(sessionItem);
+        }
+      });
+
+      setHistoryItems({
+        today: todaySessions,
+        yesterday: yesterdaySessions,
+      });
+    } catch (error) {
+      console.error('❌ Error fetching sessions:', error);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (historyOpen) {
+      fetchSessions();
+    }
+  }, [historyOpen, fetchSessions]);
+
   const handleToggle = useCallback((name) => {
     setSelectedNames((prev) => {
       const next = new Set(prev);
@@ -843,6 +761,66 @@ const App = () => {
       return next;
     });
   }, []);
+
+  const handleDeleteHistory = useCallback(async (id) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/sessions/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'accept': 'application/json',
+          'X-User-ID': userId
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete session');
+      }
+
+      console.log('✅ Session deleted:', id);
+
+      setHistoryItems((prev) => {
+        const filterDay = (arr) => arr.filter((item) => item.id !== id);
+        return {
+          today: filterDay(prev.today),
+          yesterday: filterDay(prev.yesterday),
+        };
+      });
+    } catch (error) {
+      console.error('❌ Error deleting session:', error);
+      alert('세션 삭제에 실패했습니다.');
+    }
+  }, [userId]);
+
+  const handleRenameHistory = useCallback(async (id, title) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/sessions/${id}/title`, {
+        method: 'PATCH',
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-User-ID': userId
+        },
+        body: JSON.stringify({ title })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update session title');
+      }
+
+      console.log('✅ Session title updated:', id, title);
+
+      setHistoryItems((prev) => {
+        const rename = (arr) => arr.map((item) => (item.id === id ? { ...item, title } : item));
+        return {
+          today: rename(prev.today),
+          yesterday: rename(prev.yesterday),
+        };
+      });
+    } catch (error) {
+      console.error('❌ Error updating session title:', error);
+      alert('세션 제목 변경에 실패했습니다.');
+    }
+  }, [userId]);
 
   const handleGetStarted = useCallback(async () => {
     // 캐릭터 선택 확인
@@ -933,24 +911,63 @@ const App = () => {
     }
   }, [userId]);
 
+  const handleHistorySelect = useCallback(async (session) => {
+    try {
+      await handleLoadSavedSession(session);
+      setHistoryOpen(false);
+    } catch (error) {
+      console.error('❌ Error selecting history session:', error);
+    }
+  }, [handleLoadSavedSession]);
+
   if (view === 'chat') {
     const selectedCharacters = gurus.filter(guru => selectedNames.has(guru.id));
     
     return (
-      <main className="phone">
-        <ChatPage 
-          onBack={() => setView('welcome')} 
-          sessionId={sessionId}
-          userId={userId}
-          selectedCharacters={selectedCharacters}
-          initialMessages={initialMessages}
-          onSelectHistorySession={handleLoadSavedSession}
+      <div className="phone-shell">
+        <main className="phone">
+          <ChatPage 
+            onBack={() => setView('welcome')} 
+            sessionId={sessionId}
+            userId={userId}
+            selectedCharacters={selectedCharacters}
+            initialMessages={initialMessages}
+            onOpenHistory={() => setHistoryOpen(true)}
+          />
+        </main>
+        <HistoryOverlay
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          itemsByDay={historyItems}
+          onDelete={handleDeleteHistory}
+          onRename={handleRenameHistory}
+          onSelectSession={handleHistorySelect}
         />
-      </main>
+      </div>
     );
   }
 
-  return <CarouselPage gurus={gurus} onGetStarted={handleGetStarted} selectedNames={selectedNames} onToggle={handleToggle} />;
+  return (
+    <div className="phone-shell">
+      <main className="phone">
+        <CarouselPage
+          gurus={gurus}
+          onGetStarted={handleGetStarted}
+          selectedNames={selectedNames}
+          onToggle={handleToggle}
+          onOpenHistory={() => setHistoryOpen(true)}
+        />
+      </main>
+      <HistoryOverlay
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        itemsByDay={historyItems}
+        onDelete={handleDeleteHistory}
+        onRename={handleRenameHistory}
+        onSelectSession={handleHistorySelect}
+      />
+    </div>
+  );
 };
 
 export default App;

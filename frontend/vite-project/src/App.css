@@ -241,6 +241,10 @@ body::before {
   transition: box-shadow 180ms ease, transform 180ms ease, background 180ms ease;
 }
 
+.avatar.has-photo {
+  background: linear-gradient(145deg, #161c25, #0d1118);
+}
+
 .avatar::before {
   content: "";
   position: absolute;
@@ -256,9 +260,30 @@ body::before {
   position: absolute;
   inset: 4px;
   border-radius: 50%;
-  background: linear-gradient(145deg, #1b1f27, #11161d);
+  background: radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.15), rgba(17, 22, 29, 0.6) 55%, rgba(11, 16, 23, 0.9));
   box-shadow: inset 0 2px 10px rgba(255, 255, 255, 0.12);
-  transition: opacity 180ms ease;
+  transition: opacity 180ms ease, background 180ms ease;
+  pointer-events: none;
+  opacity: 0.8;
+  z-index: 2;
+}
+
+.avatar.has-photo::after {
+  opacity: 0.55;
+  background: radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.12), rgba(9, 12, 18, 0.7) 60%, rgba(6, 8, 12, 0.9));
+}
+
+.avatar-photo {
+  position: absolute;
+  inset: 6px;
+  width: calc(100% - 12px);
+  height: calc(100% - 12px);
+  border-radius: 50%;
+  object-fit: cover;
+  z-index: 1;
+  filter: saturate(1.05);
+  opacity: 0.94;
+  transition: transform 180ms ease, filter 180ms ease, opacity 180ms ease;
 }
 
 .person.active .avatar {
@@ -272,8 +297,18 @@ body::before {
 }
 
 .person.active .avatar::after {
-  opacity: 0.8;
-  background: linear-gradient(145deg, #10141c, #0d1118);
+  opacity: 0.9;
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.14), rgba(12, 16, 23, 0.65) 55%, rgba(8, 10, 15, 0.9));
+}
+
+.person.active .avatar.has-photo::after {
+  opacity: 0.7;
+}
+
+.person.active .avatar-photo {
+  transform: scale(1.02);
+  filter: saturate(1.15);
+  opacity: 1;
 }
 
 .name {
@@ -449,6 +484,9 @@ body::before {
     0 10px 24px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(60, 243, 216, 0.2),
     inset 0 2px 8px rgba(255, 255, 255, 0.18);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
 }
 
 .bubble {

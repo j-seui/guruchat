@@ -6,6 +6,21 @@ import { sdk } from '@farcaster/miniapp-sdk';
 // API Base URL
 const API_BASE_URL = 'https://guruchat-backend.onrender.com';
 
+// Map character IDs to local avatar image URLs
+const characterImages = import.meta.glob('../../data/*.jpg', {
+  eager: true,
+  import: 'default',
+});
+
+const avatarById = Object.fromEntries(
+  Object.entries(characterImages)
+    .map(([path, url]) => {
+      const match = path.match(/([^/]+)\.jpg$/);
+      return match ? [match[1], url] : null;
+    })
+    .filter(Boolean)
+);
+
 // User ID 관리 유틸리티
 const getUserId = () => {
   let userId = localStorage.getItem('guruchat_user_id');
@@ -36,7 +51,7 @@ const BackIcon = () => (
   </svg>
 );
 
-const Person = ({ name, active, onToggle }) => (
+const Person = ({ name, active, onToggle, avatarUrl }) => (
   <div
     className={`person${active ? ' active' : ''}`}
     onClick={() => onToggle(name)}
@@ -50,7 +65,9 @@ const Person = ({ name, active, onToggle }) => (
     aria-pressed={active}
     role="button"
   >
-    <div className="avatar" aria-hidden="true" />
+    <div className={`avatar${avatarUrl ? ' has-photo' : ''}`} aria-hidden="true">
+      {avatarUrl ? <img className="avatar-photo" src={avatarUrl} alt="" loading="lazy" /> : null}
+    </div>
     <div className="name">{name}</div>
   </div>
 );
@@ -78,6 +95,7 @@ const Carousel = ({ gurus, selectedNames, onToggle }) => {
               name={person.name}
               active={selectedNames.has(person.id || person.name)}
               onToggle={() => onToggle(person.id || person.name)}
+              avatarUrl={person.avatarUrl}
             />
           ))}
         </div>
@@ -99,7 +117,7 @@ const ModeToggle = ({ mode, onToggle }) => (
   </button>
 );
 
-const Message = ({ role, text, author }) => {
+const Message = ({ role, text, author, avatarUrl }) => {
   const isUser = role === 'user';
   return (
     <div className={`message-row${isUser ? ' user' : ''}`}>
@@ -107,10 +125,7 @@ const Message = ({ role, text, author }) => {
         <div
           className="avatar-small"
           aria-hidden="true"
-          style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1525182008055-f88b95ff7980?auto=format&fit=crop&w=200&q=60')",
-          }}
+          style={avatarUrl ? { backgroundImage: `url(${avatarUrl})` } : undefined}
         />
       )}
       <div className={`bubble${isUser ? ' user' : ''}`}>
@@ -380,7 +395,9 @@ const ChatPage = ({
       id: `intro-${char.id || idx}`,
       author: char.name,
       role: 'opponent',
-      text: char.description || `Hello, I'm ${char.name}. Ask me anything!`
+      text: char.description || `Hello, I'm ${char.name}. Ask me anything!`,
+      avatarUrl: char.avatarUrl,
+      characterId: char.id
     }));
   }, [selectedCharacters]);
 
@@ -606,6 +623,15 @@ const ChatPage = ({
       
       // 각 캐릭터별 메시지 버퍼
       const characterBuffers = {};
+      const getAvatarUrl = (charId, name) => {
+        if (!charId) return null;
+        const bySelection = selectedCharacters?.find((c) => c.id === charId);
+        if (bySelection?.avatarUrl) return bySelection.avatarUrl;
+        if (avatarById[charId]) return avatarById[charId];
+        // Fallback: try to find by name in selected characters if id mismatch
+        const byName = selectedCharacters?.find((c) => c.name === name);
+        return byName?.avatarUrl || null;
+      };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -635,7 +661,9 @@ const ChatPage = ({
                     id: msgId,
                     author: data.name,
                     role: 'opponent',
-                    text: data.content
+                    text: data.content,
+                    avatarUrl: getAvatarUrl(charId, data.name),
+                    characterId: charId
                   };
                   
                   // 새 메시지 추가
@@ -671,7 +699,7 @@ const ChatPage = ({
         },
       ]);
     }
-  }, [input, mode, isComposing, sessionId, userId]);
+  }, [input, mode, isComposing, sessionId, userId, selectedCharacters]);
 
   return (
     <div className="chat-page">
@@ -771,7 +799,11 @@ const App = () => {
         
         const data = await response.json();
         console.log('📚 Characters loaded:', data);
-        setGurus(data);
+        const withAvatars = (data || []).map((character) => ({
+          ...character,
+          avatarUrl: avatarById[character.id],
+        }));
+        setGurus(withAvatars);
       } catch (error) {
         console.error('❌ Error fetching characters:', error);
         // 폴백으로 빈 배열 유지
@@ -872,7 +904,9 @@ const App = () => {
         id: `history-${message.id}`,
         role: message.role === 'user' ? 'user' : 'opponent',
         author: message.role === 'user' ? 'You' : (message.character?.name || 'Guru'),
-        text: message.content
+        text: message.content,
+        avatarUrl: message.role === 'user' ? null : avatarById[message.character?.id],
+        characterId: message.character?.id
       }));
 
       setSelectedNames(new Set((session.characters || []).map((character) => character.id)));
